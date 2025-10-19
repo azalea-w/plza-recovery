@@ -12,6 +12,10 @@ save_file_magic = bytes([
     0x17, 0x2D, 0xBB, 0x06, 0xEA
 ])
 
+mega_check = lambda entry, item_id: (
+        entry.category == CategoryType.OTHER
+        or entry.category == CategoryType.MEGA
+) and item_db[item_id]["canonical_name"].strip("xy").endswith("NAITO")
 
 def main():
     parser = argparse.ArgumentParser(
@@ -118,7 +122,9 @@ def main():
             continue
 
         # * Item has wrong category
-        if entry.category != item_db[i]["expected_category"]:
+        if (
+            entry.category != item_db[i]["expected_category"]
+        ) and not mega_check(entry, i):
             log(f"Editing category of {item_db[i]['english_ui_name']} ({entry.category} -> {item_db[i]['expected_category']})")
             entry.category = item_db[i]["expected_category"].value
             parsed_bag_save.set_entry(i, BagEntry.from_bytes(entry.to_bytes()))
@@ -126,10 +132,9 @@ def main():
 
         # * Mega Stone Quantity Check (skip if --keep-mega is specified)
         if (
-                not args.keep_mega
-                and entry.category == CategoryType.OTHER
-                and item_db[i]["canonical_name"].strip("xy").endswith("NAITO")
-                and entry.quantity > 1
+            not args.keep_mega
+            and mega_check(entry, i)
+            and entry.quantity > 1
         ):
             log(f"Editing quantity of {item_db[i]['english_ui_name']}")
             entry.quantity = 1
