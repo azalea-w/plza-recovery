@@ -4,9 +4,10 @@ import os
 import sys
 
 from lib.plaza.crypto import HashDB, SwishCrypto
-from lib.plaza.types import BagEntry, BagSave, CategoryType
+from lib.plaza.types import BagEntry, BagSave, CategoryType, PokedexSaveDataAccessor, CoreData
 from lib.plaza.types.accessors import HashDBKeys
 from lib.plaza.util.items import item_db
+from lib.plaza.util.pokemon import pokemon_db, VALID_MONS
 
 save_file_magic = bytes([
     0x17, 0x2D, 0xBB, 0x06, 0xEA
@@ -79,6 +80,8 @@ def main():
     hash_db = HashDB(blocks)
     try:
         bag_save = hash_db[HashDBKeys.BagSave]
+        pokedex = hash_db[HashDBKeys.PokeDex]
+        core_data = hash_db[HashDBKeys.CoreData]
     except KeyError:
         log("BagSave index not found", {"success": False})
         sys.exit(1)
@@ -87,9 +90,12 @@ def main():
         log("Invalid bag size, can't fix!", {"success": False})
         sys.exit(1)
 
+    player = CoreData.from_bytes(core_data.data)
     parsed_bag_save = BagSave.from_bytes(bag_save.data)
+    parsed_pokedex = PokedexSaveDataAccessor.from_bytes(pokedex.data)
 
-    log(f"Parsed BagSave: {parsed_bag_save}")
+    log(f"Player: {player}")
+    log(f"Parsed BagSave: {parsed_bag_save}\nParsed PokeDex: {parsed_pokedex}")
 
     edited_count = 0
     for i, entry in enumerate(parsed_bag_save.entries):
