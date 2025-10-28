@@ -111,10 +111,11 @@ def main():
             entry.category = item_db[i]["expected_category"].value
             parsed_bag_save.set_entry(i, BagEntry.from_bytes(entry.to_bytes()))
             edited_count += 1
+            continue
 
         # * Category < 0 causes crash
         # noinspection PyTypeChecker
-        if entry.category.value < 0:
+        if (entry.category.value if isinstance(entry.category, CategoryType) else entry.category) <0:
             log(f"Item with corrupt category encountered")
             if i in item_db and not item_db[i]["canonical_name"].strip("xy").endswith("NAITO"):
                 entry.category = item_db[i]["expected_category"].value
