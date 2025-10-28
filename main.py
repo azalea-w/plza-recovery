@@ -7,7 +7,6 @@ from lib.plaza.crypto import HashDB, SwishCrypto
 from lib.plaza.types import BagEntry, BagSave, CategoryType, PokedexSaveDataAccessor, CoreData
 from lib.plaza.types.accessors import HashDBKeys
 from lib.plaza.util.items import item_db
-from lib.plaza.util.pokemon import pokemon_db, VALID_MONS
 
 save_file_magic = bytes([
     0x17, 0x2D, 0xBB, 0x06, 0xEA
@@ -36,6 +35,11 @@ def main():
         '--keep-mega',
         action='store_true',
         help='Skip fixing mega stone quantities (keep existing quantities)'
+    )
+    parser.add_argument(
+        '--no-preemptive-edit',
+        action='store_true',
+        help='Skip preemptively changing categories of items which have not been obtained yet'
     )
     parser.add_argument(
         '--output',
@@ -100,7 +104,13 @@ def main():
     edited_count = 0
     for i, entry in enumerate(parsed_bag_save.entries):
         if not entry.quantity:
-            continue
+            if not i in item_db: continue
+            if entry.category != CategoryType.CORRUPT: continue
+            # * Fix Item Category even if it has not been obtained yet
+            # * This should fix #9
+            entry.category = item_db[i]["expected_category"].value
+            parsed_bag_save.set_entry(i, BagEntry.from_bytes(entry.to_bytes()))
+            edited_count += 1
 
         # * Category < 0 causes crash
         # noinspection PyTypeChecker
